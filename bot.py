@@ -98,6 +98,3 @@ app.add_handler(CallbackQueryHandler(boton))
 print("Bot funcionando...")
 app.run_polling()
 
-git init
-git add .
-git commit -m "primer commit" 
