@@ -9,7 +9,7 @@ from telegram.ext import (
     ContextTypes,
 )
 
-TOKEN = "8532999070:AAH3pbTvm2NlmU75S61eUEETAq4eKGSDVbM"
+TOKEN = os.environ.get('8532999070:AAH3pbTvm2NlmU75S61eUEETAq4eKGSDVbM')
 CARPETA = "documentos"
 
 # -------- START --------
