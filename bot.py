@@ -236,7 +236,7 @@ async def boton(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await query.message.reply_text("Archivo no encontrado.")
 
-app = ApplicationBuilder().token(TOKEN).build()
+app = ApplicationBuilder().token(TOKEN).concurrent_updates(True).build()
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("lista", lista))
 app.add_handler(CommandHandler("buscar", buscar))
@@ -244,4 +244,4 @@ app.add_handler(CommandHandler("favoritos", favoritos))
 app.add_handler(CommandHandler("estadisticas", estadisticas))
 app.add_handler(CallbackQueryHandler(boton))
 print("Bot funcionando...")
-app.run_polling(drop_pending_updates=True, concurrent_updates=True)
+app.run_polling(drop_pending_updates=True)
