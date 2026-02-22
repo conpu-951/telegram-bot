@@ -63,10 +63,3 @@ app.add_handler(CommandHandler("buscar", buscar))
 app.add_handler(CallbackQueryHandler(boton))
 print("Bot funcionando...")
 app.run_polling()
-```
-
-Pega esto en `bot.py`, guarda, luego en Git Bash:
-```
-git add .
-git commit -m "fix puerto render"
-git push 
