@@ -1,4 +1,5 @@
 import os
+import json
 import threading
 import http.server
 import socketserver
@@ -13,6 +14,17 @@ from telegram.ext import (
 TOKEN = os.environ.get('TOKEN')
 CARPETA = "documentos"
 IMAGEN = "bienvenida.png"
+FAVORITOS_FILE = "favoritos.json"
+
+def cargar_favoritos():
+    if os.path.exists(FAVORITOS_FILE):
+        with open(FAVORITOS_FILE, "r") as f:
+            return json.load(f)
+    return {}
+
+def guardar_favoritos(favoritos):
+    with open(FAVORITOS_FILE, "w") as f:
+        json.dump(favoritos, f)
 
 def iniciar_servidor():
     handler = http.server.BaseHTTPRequestHandler
@@ -26,6 +38,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         BotCommand("start", "🏠 Inicio"),
         BotCommand("lista", "📚 Ver catálogo completo"),
         BotCommand("buscar", "🔎 Buscar un libro"),
+        BotCommand("favoritos", "⭐ Mis favoritos"),
     ])
     keyboard = [
         [InlineKeyboardButton("🔎 Buscar documento", callback_data="cmd_buscar")],
@@ -94,9 +107,40 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
+async def favoritos(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.message.from_user.id)
+    favs = cargar_favoritos()
+    user_favs = favs.get(user_id, [])
+    if not user_favs:
+        await update.message.reply_text(
+            "╔═══════════════════════╗\n"
+            "   ⭐ MIS FAVORITOS\n"
+            "╚═══════════════════════╝\n\n"
+            "😔 No tienes favoritos guardados.\n\n"
+            "Descarga un libro y guárdalo\n"
+            "en favoritos."
+        )
+        return
+    keyboard = [
+        [
+            InlineKeyboardButton(f"📖 {a}", callback_data=a),
+            InlineKeyboardButton("❌", callback_data=f"delfav_{user_id}_{a}")
+        ]
+        for a in user_favs
+    ]
+    await update.message.reply_text(
+        f"╔═══════════════════════╗\n"
+        f"   ⭐ MIS FAVORITOS\n"
+        f"╚═══════════════════════╝\n\n"
+        f"📚 Tienes {len(user_favs)} favorito(s)\n\n"
+        f"Presiona ❌ para eliminar:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
 async def boton(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
+    user_id = str(query.from_user.id)
 
     if query.data == "cmd_buscar":
         await query.message.reply_text(
@@ -113,10 +157,38 @@ async def boton(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
+    if query.data.startswith("delfav_"):
+        partes = query.data.split("_", 2)
+        archivo = partes[2]
+        favs = cargar_favoritos()
+        if user_id in favs and archivo in favs[user_id]:
+            favs[user_id].remove(archivo)
+            guardar_favoritos(favs)
+            await query.message.reply_text(f"❌ {archivo} eliminado de favoritos.")
+        return
+
+    if query.data.startswith("addfav_"):
+        archivo = query.data.replace("addfav_", "")
+        favs = cargar_favoritos()
+        if user_id not in favs:
+            favs[user_id] = []
+        if archivo not in favs[user_id]:
+            favs[user_id].append(archivo)
+            guardar_favoritos(favs)
+            await query.message.reply_text(f"⭐ {archivo} guardado en favoritos.")
+        else:
+            await query.message.reply_text("Ya está en tus favoritos.")
+        return
+
     ruta = os.path.join(CARPETA, query.data)
     if os.path.exists(ruta):
         with open(ruta, "rb") as f:
             await query.message.reply_document(f)
+        keyboard = [[InlineKeyboardButton("⭐ Guardar en favoritos", callback_data=f"addfav_{query.data}")]]
+        await query.message.reply_text(
+            "¿Te gustó este libro?",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
     else:
         await query.message.reply_text("Archivo no encontrado.")
 
@@ -124,6 +196,7 @@ app = ApplicationBuilder().token(TOKEN).build()
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("lista", lista))
 app.add_handler(CommandHandler("buscar", buscar))
+app.add_handler(CommandHandler("favoritos", favoritos))
 app.add_handler(CallbackQueryHandler(boton))
 print("Bot funcionando...")
 app.run_polling()
