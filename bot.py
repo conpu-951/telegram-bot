@@ -17,6 +17,7 @@ IMAGEN = "bienvenida.png"
 FAVORITOS_FILE = "favoritos.json"
 STATS_FILE = "estadisticas.json"
 PORTADAS = "portadas"
+ADMIN_ID = 6262593562
 
 def cargar_favoritos():
     if os.path.exists(FAVORITOS_FILE):
@@ -187,6 +188,55 @@ async def estadisticas(update: Update, context: ContextTypes.DEFAULT_TYPE):
         texto += f"{medalla} {archivo}\n    {count} descarga(s)\n\n"
     await update.message.reply_text(texto)
 
+async def admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message.from_user.id != ADMIN_ID:
+        await update.message.reply_text("⛔ No tienes permiso para usar este comando.")
+        return
+    await update.message.reply_text(
+        "╔═══════════════════════╗\n"
+        "   👤 PANEL DE ADMIN\n"
+        "╚═══════════════════════╝\n\n"
+        "Comandos disponibles:\n\n"
+        "📤 Enviar PDF al bot para agregarlo\n\n"
+        "🗑️ /eliminar nombre.pdf\n"
+        "Para eliminar un libro\n\n"
+        "📊 /estadisticas\n"
+        "Ver descargas\n\n"
+        "📚 /lista\n"
+        "Ver todos los libros"
+    )
+
+async def eliminar(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message.from_user.id != ADMIN_ID:
+        await update.message.reply_text("⛔ No tienes permiso para usar este comando.")
+        return
+    if not context.args:
+        await update.message.reply_text(
+            "✏️ Uso: /eliminar nombre.pdf\n\n"
+            "Ejemplo:\n"
+            "/eliminar casa.pdf"
+        )
+        return
+    nombre = " ".join(context.args)
+    ruta = os.path.join(CARPETA, nombre)
+    if os.path.exists(ruta):
+        os.remove(ruta)
+        await update.message.reply_text(f"✅ {nombre} eliminado correctamente.")
+    else:
+        await update.message.reply_text(f"😔 No se encontró {nombre}.")
+
+async def recibir_documento(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message.from_user.id != ADMIN_ID:
+        return
+    doc = update.message.document
+    if not doc.file_name.endswith(".pdf"):
+        await update.message.reply_text("⚠️ Solo se aceptan archivos PDF.")
+        return
+    archivo = await doc.get_file()
+    ruta = os.path.join(CARPETA, doc.file_name)
+    await archivo.download_to_drive(ruta)
+    await update.message.reply_text(f"✅ {doc.file_name} agregado correctamente.")
+
 async def boton(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -256,12 +306,17 @@ async def boton(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await query.message.reply_text("Archivo no encontrado.")
 
+from telegram.ext import MessageHandler, filters
+
 app = ApplicationBuilder().token(TOKEN).build()
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("lista", lista))
 app.add_handler(CommandHandler("buscar", buscar))
 app.add_handler(CommandHandler("favoritos", favoritos))
 app.add_handler(CommandHandler("estadisticas", estadisticas))
+app.add_handler(CommandHandler("admin", admin))
+app.add_handler(CommandHandler("eliminar", eliminar))
+app.add_handler(MessageHandler(filters.Document.PDF, recibir_documento))
 app.add_handler(CallbackQueryHandler(boton))
 print("Bot funcionando...")
 app.run_polling(drop_pending_updates=True)
