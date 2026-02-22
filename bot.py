@@ -16,6 +16,7 @@ CARPETA = "documentos"
 IMAGEN = "bienvenida.png"
 FAVORITOS_FILE = "favoritos.json"
 STATS_FILE = "estadisticas.json"
+PORTADAS = "portadas"
 
 def cargar_favoritos():
     if os.path.exists(FAVORITOS_FILE):
@@ -225,14 +226,27 @@ async def boton(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     ruta = os.path.join(CARPETA, query.data)
     if os.path.exists(ruta):
+        nombre_sin_ext = os.path.splitext(query.data)[0]
+        portada_jpg = os.path.join(PORTADAS, f"{nombre_sin_ext}.jpg")
+        portada_png = os.path.join(PORTADAS, f"{nombre_sin_ext}.png")
+        keyboard = [[InlineKeyboardButton("⭐ Guardar en favoritos", callback_data=f"addfav_{query.data}")]]
+        if os.path.exists(portada_jpg):
+            with open(portada_jpg, "rb") as img:
+                await query.message.reply_photo(
+                    photo=img,
+                    caption=f"📖 {nombre_sin_ext}",
+                    reply_markup=InlineKeyboardMarkup(keyboard)
+                )
+        elif os.path.exists(portada_png):
+            with open(portada_png, "rb") as img:
+                await query.message.reply_photo(
+                    photo=img,
+                    caption=f"📖 {nombre_sin_ext}",
+                    reply_markup=InlineKeyboardMarkup(keyboard)
+                )
         registrar_descarga(query.data)
         with open(ruta, "rb") as f:
             await query.message.reply_document(f)
-        keyboard = [[InlineKeyboardButton("⭐ Guardar en favoritos", callback_data=f"addfav_{query.data}")]]
-        await query.message.reply_text(
-            "¿Te gustó este libro?",
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
     else:
         await query.message.reply_text("Archivo no encontrado.")
 
@@ -244,4 +258,4 @@ app.add_handler(CommandHandler("favoritos", favoritos))
 app.add_handler(CommandHandler("estadisticas", estadisticas))
 app.add_handler(CallbackQueryHandler(boton))
 print("Bot funcionando...")
-app.run_polling(drop_pending_updates=True) 
+app.run_polling(drop_pending_updates=True)
