@@ -34,12 +34,17 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def lista(update: Update, context: ContextTypes.DEFAULT_TYPE):
     archivos = os.listdir(CARPETA)
+    total = len(archivos)
     if not archivos:
         await update.message.reply_text("😔 No hay libros disponibles por el momento.")
         return
     keyboard = [[InlineKeyboardButton(f"📖 {a}", callback_data=a)] for a in archivos]
     await update.message.reply_text(
-        "📚 Selecciona un documento:",
+        f"╔═══════════════════════╗\n"
+        f"   📚 CATÁLOGO COMPLETO\n"
+        f"╚═══════════════════════╝\n\n"
+        f"📊 Total de libros: {total}\n\n"
+        f"Selecciona un documento:",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
