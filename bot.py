@@ -23,7 +23,7 @@ threading.Thread(target=iniciar_servidor, daemon=True).start()
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
-        [InlineKeyboardButton("🔎 Buscar documento", switch_inline_query_current_chat="/buscar ")],
+        [InlineKeyboardButton("🔎 Buscar documento", switch_inline_query_current_chat="")],
     ]
     with open(IMAGEN, "rb") as img:
         await update.message.reply_photo(
