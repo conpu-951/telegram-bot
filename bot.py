@@ -101,7 +101,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def lista(update: Update, context: ContextTypes.DEFAULT_TYPE):
     registrar_usuario(update.message.from_user)
-    archivos = os.listdir(CARPETA)
+    archivos = []
+    for item in os.listdir(CARPETA):
+        ruta = os.path.join(CARPETA, item)
+        if os.path.isfile(ruta):
+            archivos.append(item)
+        elif os.path.isdir(ruta):
+            for archivo in os.listdir(ruta):
+                archivos.append(f"{item}/{archivo}")
     total = len(archivos)
     if not archivos:
         await update.message.reply_text("😔 No hay libros disponibles por el momento.")
@@ -133,9 +140,16 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
     palabra = " ".join(context.args).lower()
-    archivos = os.listdir(CARPETA)
-    resultados = [a for a in archivos if palabra in a.lower()]
-    if not resultados:
+    archivos = []
+    for item in os.listdir(CARPETA):
+        ruta = os.path.join(CARPETA, item)
+        if os.path.isfile(ruta) and palabra in item.lower():
+            archivos.append(item)
+        elif os.path.isdir(ruta):
+            for archivo in os.listdir(ruta):
+                if palabra in archivo.lower():
+                    archivos.append(f"{item}/{archivo}")
+    if not archivos:
         await update.message.reply_text(
             "╔═══════════════════════╗\n"
             "   😔 SIN RESULTADOS\n"
@@ -148,12 +162,12 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "catalogo completo con /lista"
         )
         return
-    keyboard = [[InlineKeyboardButton(f"📖 {a}", callback_data=a)] for a in resultados]
+    keyboard = [[InlineKeyboardButton(f"📖 {a}", callback_data=a)] for a in archivos]
     await update.message.reply_text(
         f"╔═══════════════════════╗\n"
         f"   ✅ LIBRO ENCONTRADO 🧐\n"
         f"╚═══════════════════════╝\n\n"
-        f"📚 Se encontraron {len(resultados)} resultado(s)\n\n"
+        f"📚 Se encontraron {len(archivos)} resultado(s)\n\n"
         f"👇 Presiona para descargar:",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
@@ -223,52 +237,108 @@ async def admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("⛔ No tienes permiso para usar este comando.")
         return
     usuarios = cargar_usuarios()
+    categorias = [f for f in os.listdir(CARPETA) if os.path.isdir(os.path.join(CARPETA, f))]
     await update.message.reply_text(
         "╔═══════════════════════╗\n"
         "   👤 PANEL DE ADMIN\n"
         "╚═══════════════════════╝\n\n"
-        f"👥 Usuarios registrados: {len(usuarios)}\n\n"
+        f"👥 Usuarios: {len(usuarios)}\n"
+        f"📁 Categorias: {len(categorias)}\n\n"
         "Comandos disponibles:\n\n"
         "📤 Enviar PDF para agregar libro\n\n"
-        "🗑️ /eliminar nombre.pdf\n"
-        "Para eliminar un libro\n\n"
-        "📢 /broadcast mensaje\n"
-        "Enviar mensaje a todos\n\n"
+        "🗑️ /eliminar nombre.pdf\n\n"
+        "✏️ /renombrar actual.pdf nuevo.pdf\n\n"
+        "📁 /crearcategoria nombre\n\n"
+        "📂 /mover libro.pdf categoria\n\n"
+        "📢 /broadcast mensaje\n\n"
         "📋 /usuarios\n"
-        "Ver lista de usuarios\n\n"
-        "📊 /estadisticas\n"
-        "Ver descargas"
     )
 
 async def eliminar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.from_user.id != ADMIN_ID:
-        await update.message.reply_text("⛔ No tienes permiso para usar este comando.")
+        await update.message.reply_text("⛔ No tienes permiso.")
         return
     if not context.args:
-        await update.message.reply_text(
-            "✏️ Uso: /eliminar nombre.pdf\n\n"
-            "Ejemplo:\n"
-            "/eliminar casa.pdf"
-        )
+        await update.message.reply_text("✏️ Uso: /eliminar nombre.pdf")
         return
     nombre = " ".join(context.args)
     ruta = os.path.join(CARPETA, nombre)
     if os.path.exists(ruta):
         os.remove(ruta)
-        await update.message.reply_text(f"✅ {nombre} eliminado correctamente.")
+        await update.message.reply_text(f"✅ {nombre} eliminado.")
     else:
         await update.message.reply_text(f"😔 No se encontró {nombre}.")
 
-async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def renombrar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.from_user.id != ADMIN_ID:
-        await update.message.reply_text("⛔ No tienes permiso para usar este comando.")
+        await update.message.reply_text("⛔ No tienes permiso.")
+        return
+    if len(context.args) < 2:
+        await update.message.reply_text(
+            "✏️ Uso: /renombrar actual.pdf nuevo.pdf\n\n"
+            "Ejemplo:\n"
+            "/renombrar casa.pdf mi_casa.pdf"
+        )
+        return
+    actual = context.args[0]
+    nuevo = context.args[1]
+    ruta_actual = os.path.join(CARPETA, actual)
+    ruta_nueva = os.path.join(CARPETA, nuevo)
+    if os.path.exists(ruta_actual):
+        os.rename(ruta_actual, ruta_nueva)
+        await update.message.reply_text(f"✅ Renombrado:\n{actual} → {nuevo}")
+    else:
+        await update.message.reply_text(f"😔 No se encontró {actual}.")
+
+async def crear_categoria(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message.from_user.id != ADMIN_ID:
+        await update.message.reply_text("⛔ No tienes permiso.")
         return
     if not context.args:
         await update.message.reply_text(
-            "✏️ Uso: /broadcast mensaje\n\n"
+            "✏️ Uso: /crearcategoria nombre\n\n"
             "Ejemplo:\n"
-            "/broadcast Nuevo libro disponible!"
+            "/crearcategoria Motivacion"
         )
+        return
+    nombre = " ".join(context.args)
+    ruta = os.path.join(CARPETA, nombre)
+    if os.path.exists(ruta):
+        await update.message.reply_text(f"😔 La categoría {nombre} ya existe.")
+    else:
+        os.makedirs(ruta)
+        await update.message.reply_text(f"✅ Categoría {nombre} creada correctamente.")
+
+async def mover(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message.from_user.id != ADMIN_ID:
+        await update.message.reply_text("⛔ No tienes permiso.")
+        return
+    if len(context.args) < 2:
+        await update.message.reply_text(
+            "✏️ Uso: /mover libro.pdf Categoria\n\n"
+            "Ejemplo:\n"
+            "/mover casa.pdf Motivacion"
+        )
+        return
+    libro = context.args[0]
+    categoria = context.args[1]
+    ruta_origen = os.path.join(CARPETA, libro)
+    ruta_destino = os.path.join(CARPETA, categoria, libro)
+    if not os.path.exists(ruta_origen):
+        await update.message.reply_text(f"😔 No se encontró {libro}.")
+        return
+    if not os.path.exists(os.path.join(CARPETA, categoria)):
+        await update.message.reply_text(f"😔 La categoría {categoria} no existe.\nCrea con /crearcategoria {categoria}")
+        return
+    os.rename(ruta_origen, ruta_destino)
+    await update.message.reply_text(f"✅ {libro} movido a {categoria}.")
+
+async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message.from_user.id != ADMIN_ID:
+        await update.message.reply_text("⛔ No tienes permiso.")
+        return
+    if not context.args:
+        await update.message.reply_text("✏️ Uso: /broadcast mensaje")
         return
     mensaje = " ".join(context.args)
     usuarios = cargar_usuarios()
@@ -291,7 +361,7 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def ver_usuarios(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.from_user.id != ADMIN_ID:
-        await update.message.reply_text("⛔ No tienes permiso para usar este comando.")
+        await update.message.reply_text("⛔ No tienes permiso.")
         return
     usuarios = cargar_usuarios()
     if not usuarios:
@@ -321,14 +391,12 @@ async def recibir_documento(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"✅ {doc.file_name} agregado correctamente.")
     usuarios = cargar_usuarios()
     nombre_sin_ext = os.path.splitext(doc.file_name)[0]
-    enviados = 0
     for uid in usuarios:
         try:
             await context.bot.send_message(
                 chat_id=int(uid),
                 text=f"🔔 Nuevo libro disponible!\n\n📖 {nombre_sin_ext}\n\nEscribe /lista para verlo."
             )
-            enviados += 1
         except:
             pass
 
@@ -409,6 +477,9 @@ app.add_handler(CommandHandler("favoritos", favoritos))
 app.add_handler(CommandHandler("estadisticas", estadisticas))
 app.add_handler(CommandHandler("admin", admin))
 app.add_handler(CommandHandler("eliminar", eliminar))
+app.add_handler(CommandHandler("renombrar", renombrar))
+app.add_handler(CommandHandler("crearcategoria", crear_categoria))
+app.add_handler(CommandHandler("mover", mover))
 app.add_handler(CommandHandler("broadcast", broadcast))
 app.add_handler(CommandHandler("usuarios", ver_usuarios))
 app.add_handler(MessageHandler(filters.Document.PDF, recibir_documento))
