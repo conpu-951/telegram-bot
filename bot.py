@@ -80,6 +80,16 @@ def iniciar_servidor():
 
 threading.Thread(target=iniciar_servidor, daemon=True).start()
 
+def obtener_portada(nombre_archivo):
+    nombre_sin_ext = os.path.splitext(nombre_archivo)[0]
+    portada_jpg = os.path.join(PORTADAS, f"{nombre_sin_ext}.jpg")
+    portada_png = os.path.join(PORTADAS, f"{nombre_sin_ext}.png")
+    if os.path.exists(portada_jpg):
+        return portada_jpg
+    elif os.path.exists(portada_png):
+        return portada_png
+    return None
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     registrar_usuario(update.message.from_user)
     await context.bot.set_my_commands([
@@ -162,15 +172,22 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "catalogo completo con /lista"
         )
         return
-    keyboard = [[InlineKeyboardButton(f"📖 {a}", callback_data=a)] for a in archivos]
-    await update.message.reply_text(
-        f"╔═══════════════════════╗\n"
-        f"   ✅ LIBRO ENCONTRADO 🧐\n"
-        f"╚═══════════════════════╝\n\n"
-        f"📚 Se encontraron {len(archivos)} resultado(s)\n\n"
-        f"👇 Presiona para descargar:",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
+    for archivo in archivos:
+        nombre_sin_ext = os.path.splitext(os.path.basename(archivo))[0]
+        portada = obtener_portada(os.path.basename(archivo))
+        keyboard = [[InlineKeyboardButton(f"📥 Descargar", callback_data=archivo)]]
+        if portada:
+            with open(portada, "rb") as img:
+                await update.message.reply_photo(
+                    photo=img,
+                    caption=f"📖 {nombre_sin_ext}",
+                    reply_markup=InlineKeyboardMarkup(keyboard)
+                )
+        else:
+            await update.message.reply_text(
+                f"📖 {nombre_sin_ext}",
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
 
 async def favoritos(update: Update, context: ContextTypes.DEFAULT_TYPE):
     registrar_usuario(update.message.from_user)
@@ -238,20 +255,61 @@ async def admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     usuarios = cargar_usuarios()
     categorias = [f for f in os.listdir(CARPETA) if os.path.isdir(os.path.join(CARPETA, f))]
+    libros = [f for f in os.listdir(CARPETA) if os.path.isfile(os.path.join(CARPETA, f))]
     await update.message.reply_text(
         "╔═══════════════════════╗\n"
         "   👤 PANEL DE ADMIN\n"
         "╚═══════════════════════╝\n\n"
         f"👥 Usuarios: {len(usuarios)}\n"
-        f"📁 Categorias: {len(categorias)}\n\n"
-        "Comandos disponibles:\n\n"
-        "📤 Enviar PDF para agregar libro\n\n"
-        "🗑️ /eliminar nombre.pdf\n\n"
-        "✏️ /renombrar actual.pdf nuevo.pdf\n\n"
-        "📁 /crearcategoria nombre\n\n"
-        "📂 /mover libro.pdf categoria\n\n"
-        "📢 /broadcast mensaje\n\n"
-        "📋 /usuarios\n"
+        f"📁 Categorias: {len(categorias)}\n"
+        f"📚 Libros: {len(libros)}\n\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "📤 AGREGAR LIBRO\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "Envía cualquier PDF al bot\n"
+        "y se agregará automáticamente\n\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "🖼️ AGREGAR PORTADA\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "Envía una imagen con el nombre\n"
+        "del libro como descripción\n"
+        "Ej: envía foto con caption:\n"
+        "casa.pdf\n\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "🗑️ ELIMINAR LIBRO\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "/eliminar nombre.pdf\n"
+        "Ej: /eliminar casa.pdf\n\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "✏️ RENOMBRAR LIBRO\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "/renombrar actual.pdf nuevo.pdf\n"
+        "Ej: /renombrar libro1.pdf mi_libro.pdf\n\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "📁 CREAR CATEGORIA\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "/crearcategoria nombre\n"
+        "Ej: /crearcategoria Motivacion\n\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "📂 MOVER LIBRO\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "/mover libro.pdf Categoria\n"
+        "Ej: /mover casa.pdf Motivacion\n\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "📢 BROADCAST\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "/broadcast mensaje\n"
+        "Ej: /broadcast Nuevo libro!\n\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "📋 VER USUARIOS\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "/usuarios\n"
+        "Lista de todos los usuarios\n\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "📊 ESTADISTICAS\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "/estadisticas\n"
+        "Ver descargas por libro"
     )
 
 async def eliminar(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -259,7 +317,7 @@ async def eliminar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("⛔ No tienes permiso.")
         return
     if not context.args:
-        await update.message.reply_text("✏️ Uso: /eliminar nombre.pdf")
+        await update.message.reply_text("✏️ Uso: /eliminar nombre.pdf\n\nEjemplo:\n/eliminar casa.pdf")
         return
     nombre = " ".join(context.args)
     ruta = os.path.join(CARPETA, nombre)
@@ -274,11 +332,7 @@ async def renombrar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("⛔ No tienes permiso.")
         return
     if len(context.args) < 2:
-        await update.message.reply_text(
-            "✏️ Uso: /renombrar actual.pdf nuevo.pdf\n\n"
-            "Ejemplo:\n"
-            "/renombrar casa.pdf mi_casa.pdf"
-        )
+        await update.message.reply_text("✏️ Uso: /renombrar actual.pdf nuevo.pdf\n\nEjemplo:\n/renombrar casa.pdf mi_casa.pdf")
         return
     actual = context.args[0]
     nuevo = context.args[1]
@@ -295,11 +349,7 @@ async def crear_categoria(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("⛔ No tienes permiso.")
         return
     if not context.args:
-        await update.message.reply_text(
-            "✏️ Uso: /crearcategoria nombre\n\n"
-            "Ejemplo:\n"
-            "/crearcategoria Motivacion"
-        )
+        await update.message.reply_text("✏️ Uso: /crearcategoria nombre\n\nEjemplo:\n/crearcategoria Motivacion")
         return
     nombre = " ".join(context.args)
     ruta = os.path.join(CARPETA, nombre)
@@ -314,11 +364,7 @@ async def mover(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("⛔ No tienes permiso.")
         return
     if len(context.args) < 2:
-        await update.message.reply_text(
-            "✏️ Uso: /mover libro.pdf Categoria\n\n"
-            "Ejemplo:\n"
-            "/mover casa.pdf Motivacion"
-        )
+        await update.message.reply_text("✏️ Uso: /mover libro.pdf Categoria\n\nEjemplo:\n/mover casa.pdf Motivacion")
         return
     libro = context.args[0]
     categoria = context.args[1]
@@ -328,7 +374,7 @@ async def mover(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"😔 No se encontró {libro}.")
         return
     if not os.path.exists(os.path.join(CARPETA, categoria)):
-        await update.message.reply_text(f"😔 La categoría {categoria} no existe.\nCrea con /crearcategoria {categoria}")
+        await update.message.reply_text(f"😔 La categoría {categoria} no existe.\n\nPrimero créala con:\n/crearcategoria {categoria}")
         return
     os.rename(ruta_origen, ruta_destino)
     await update.message.reply_text(f"✅ {libro} movido a {categoria}.")
@@ -338,7 +384,7 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("⛔ No tienes permiso.")
         return
     if not context.args:
-        await update.message.reply_text("✏️ Uso: /broadcast mensaje")
+        await update.message.reply_text("✏️ Uso: /broadcast mensaje\n\nEjemplo:\n/broadcast Nuevo libro disponible!")
         return
     mensaje = " ".join(context.args)
     usuarios = cargar_usuarios()
@@ -353,11 +399,7 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
             enviados += 1
         except:
             fallidos += 1
-    await update.message.reply_text(
-        f"✅ Mensaje enviado\n\n"
-        f"📤 Enviados: {enviados}\n"
-        f"❌ Fallidos: {fallidos}"
-    )
+    await update.message.reply_text(f"✅ Mensaje enviado\n\n📤 Enviados: {enviados}\n❌ Fallidos: {fallidos}")
 
 async def ver_usuarios(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.from_user.id != ADMIN_ID:
@@ -399,6 +441,26 @@ async def recibir_documento(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
         except:
             pass
+
+async def recibir_portada(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message.from_user.id != ADMIN_ID:
+        return
+    if not update.message.caption:
+        await update.message.reply_text(
+            "⚠️ Envía la imagen con el nombre del libro como descripción.\n\n"
+            "Ejemplo: envía la foto con caption:\n"
+            "casa.pdf"
+        )
+        return
+    nombre_libro = update.message.caption.strip()
+    nombre_sin_ext = os.path.splitext(nombre_libro)[0]
+    if not os.path.exists(PORTADAS):
+        os.makedirs(PORTADAS)
+    foto = update.message.photo[-1]
+    archivo = await foto.get_file()
+    ruta = os.path.join(PORTADAS, f"{nombre_sin_ext}.jpg")
+    await archivo.download_to_drive(ruta)
+    await update.message.reply_text(f"✅ Portada de {nombre_sin_ext} guardada correctamente.")
 
 async def boton(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -445,19 +507,11 @@ async def boton(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     ruta = os.path.join(CARPETA, query.data)
     if os.path.exists(ruta):
-        nombre_sin_ext = os.path.splitext(query.data)[0]
-        portada_jpg = os.path.join(PORTADAS, f"{nombre_sin_ext}.jpg")
-        portada_png = os.path.join(PORTADAS, f"{nombre_sin_ext}.png")
+        nombre_sin_ext = os.path.splitext(os.path.basename(query.data))[0]
+        portada = obtener_portada(os.path.basename(query.data))
         keyboard = [[InlineKeyboardButton("⭐ Guardar en favoritos", callback_data=f"addfav_{query.data}")]]
-        if os.path.exists(portada_jpg):
-            with open(portada_jpg, "rb") as img:
-                await query.message.reply_photo(
-                    photo=img,
-                    caption=f"📖 {nombre_sin_ext}",
-                    reply_markup=InlineKeyboardMarkup(keyboard)
-                )
-        elif os.path.exists(portada_png):
-            with open(portada_png, "rb") as img:
+        if portada:
+            with open(portada, "rb") as img:
                 await query.message.reply_photo(
                     photo=img,
                     caption=f"📖 {nombre_sin_ext}",
@@ -483,6 +537,7 @@ app.add_handler(CommandHandler("mover", mover))
 app.add_handler(CommandHandler("broadcast", broadcast))
 app.add_handler(CommandHandler("usuarios", ver_usuarios))
 app.add_handler(MessageHandler(filters.Document.PDF, recibir_documento))
+app.add_handler(MessageHandler(filters.PHOTO, recibir_portada))
 app.add_handler(CallbackQueryHandler(boton))
 print("Bot funcionando...")
 app.run_polling(drop_pending_updates=True)
