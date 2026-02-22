@@ -44,8 +44,14 @@ def registrar_descarga(archivo):
     guardar_stats(stats)
 
 def iniciar_servidor():
-    handler = http.server.BaseHTTPRequestHandler
-    with socketserver.TCPServer(("", 10000), handler) as httpd:
+    class Handler(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b"Bot funcionando")
+        def log_message(self, format, *args):
+            pass
+    with socketserver.TCPServer(("", 10000), Handler) as httpd:
         httpd.serve_forever()
 
 threading.Thread(target=iniciar_servidor, daemon=True).start()
