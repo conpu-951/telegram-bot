@@ -24,7 +24,6 @@ threading.Thread(target=iniciar_servidor, daemon=True).start()
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("🔎 Buscar documento", callback_data="cmd_buscar")],
-        [InlineKeyboardButton("📚 Ver catálogo completo", callback_data="cmd_catalogo")],
     ]
     with open(IMAGEN, "rb") as img:
         await update.message.reply_photo(
@@ -36,10 +35,23 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def lista(update: Update, context: ContextTypes.DEFAULT_TYPE):
     archivos = os.listdir(CARPETA)
     if not archivos:
-        await update.message.reply_text("No hay documentos disponibles.")
+        await update.message.reply_text(
+            "╔═══════════════════════╗\n"
+            "   📚 CATÁLOGO\n"
+            "╚═══════════════════════╝\n\n"
+            "😔 No hay libros disponibles\n"
+            "por el momento."
+        )
         return
-    keyboard = [[InlineKeyboardButton(archivo, callback_data=archivo)] for archivo in archivos]
-    await update.message.reply_text("📂 Selecciona un documento:", reply_markup=InlineKeyboardMarkup(keyboard))
+    total = len(archivos)
+    lista_libros = "\n".join([f"📖 {a}" for a in archivos])
+    await update.message.reply_text(
+        f"╔═══════════════════════╗\n"
+        f"   📚 CATÁLOGO COMPLETO\n"
+        f"╚═══════════════════════╝\n\n"
+        f"📊 Total de libros: {total}\n\n"
+        f"{lista_libros}"
+    )
 
 async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
@@ -91,28 +103,6 @@ async def boton(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "/buscar Tú Eres tu Prioridad\n\n"
             "💡 Tip: Puedes buscar por\n"
             "una palabra del título"
-        )
-        return
-
-    if query.data == "cmd_catalogo":
-        archivos = os.listdir(CARPETA)
-        if not archivos:
-            await query.message.reply_text(
-                "╔═══════════════════════╗\n"
-                "   📚 CATÁLOGO\n"
-                "╚═══════════════════════╝\n\n"
-                "😔 No hay libros disponibles\n"
-                "por el momento."
-            )
-            return
-        total = len(archivos)
-        lista_libros = "\n".join([f"📖 {a}" for a in archivos])
-        await query.message.reply_text(
-            f"╔═══════════════════════╗\n"
-            f"   📚 CATÁLOGO COMPLETO\n"
-            f"╚═══════════════════════╝\n\n"
-            f"📊 Total de libros: {total}\n\n"
-            f"{lista_libros}"
         )
         return
 
