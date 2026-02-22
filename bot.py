@@ -15,6 +15,7 @@ TOKEN = os.environ.get('TOKEN')
 CARPETA = "documentos"
 IMAGEN = "bienvenida.png"
 FAVORITOS_FILE = "favoritos.json"
+STATS_FILE = "estadisticas.json"
 
 def cargar_favoritos():
     if os.path.exists(FAVORITOS_FILE):
@@ -25,6 +26,21 @@ def cargar_favoritos():
 def guardar_favoritos(favoritos):
     with open(FAVORITOS_FILE, "w") as f:
         json.dump(favoritos, f)
+
+def cargar_stats():
+    if os.path.exists(STATS_FILE):
+        with open(STATS_FILE, "r") as f:
+            return json.load(f)
+    return {}
+
+def guardar_stats(stats):
+    with open(STATS_FILE, "w") as f:
+        json.dump(stats, f)
+
+def registrar_descarga(archivo):
+    stats = cargar_stats()
+    stats[archivo] = stats.get(archivo, 0) + 1
+    guardar_stats(stats)
 
 def iniciar_servidor():
     handler = http.server.BaseHTTPRequestHandler
@@ -39,6 +55,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         BotCommand("lista", "📚 Ver catálogo completo"),
         BotCommand("buscar", "🔎 Buscar un libro"),
         BotCommand("favoritos", "⭐ Mis favoritos"),
+        BotCommand("estadisticas", "📊 Estadísticas"),
     ])
     keyboard = [
         [InlineKeyboardButton("🔎 Buscar documento", callback_data="cmd_buscar")],
@@ -137,6 +154,32 @@ async def favoritos(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
+async def estadisticas(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    stats = cargar_stats()
+    if not stats:
+        await update.message.reply_text(
+            "╔═══════════════════════╗\n"
+            "   📊 ESTADISTICAS\n"
+            "╚═══════════════════════╝\n\n"
+            "😔 Aún no hay descargas\n"
+            "registradas."
+        )
+        return
+    ordenados = sorted(stats.items(), key=lambda x: x[1], reverse=True)
+    total_descargas = sum(stats.values())
+    texto = (
+        "╔═══════════════════════╗\n"
+        "   📊 ESTADISTICAS\n"
+        "╚═══════════════════════╝\n\n"
+        f"📥 Total descargas: {total_descargas}\n\n"
+        "🏆 Más descargados:\n\n"
+    )
+    medallas = ["🥇", "🥈", "🥉"]
+    for i, (archivo, count) in enumerate(ordenados[:10]):
+        medalla = medallas[i] if i < 3 else "📖"
+        texto += f"{medalla} {archivo}\n    {count} descarga(s)\n\n"
+    await update.message.reply_text(texto)
+
 async def boton(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -182,6 +225,7 @@ async def boton(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     ruta = os.path.join(CARPETA, query.data)
     if os.path.exists(ruta):
+        registrar_descarga(query.data)
         with open(ruta, "rb") as f:
             await query.message.reply_document(f)
         keyboard = [[InlineKeyboardButton("⭐ Guardar en favoritos", callback_data=f"addfav_{query.data}")]]
@@ -197,6 +241,7 @@ app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("lista", lista))
 app.add_handler(CommandHandler("buscar", buscar))
 app.add_handler(CommandHandler("favoritos", favoritos))
+app.add_handler(CommandHandler("estadisticas", estadisticas))
 app.add_handler(CallbackQueryHandler(boton))
 print("Bot funcionando...")
-app.run_polling(drop_pending_updates=True)
+app.run_polling(drop_pending_updates=True, concurrent_updates=True)
