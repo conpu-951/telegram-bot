@@ -80,7 +80,14 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
     keyboard = [[InlineKeyboardButton(f"📖 {a}", callback_data=a)] for a in resultados]
-    await update.message.reply_text("🔎 Resultados:", reply_markup=InlineKeyboardMarkup(keyboard))
+    await update.message.reply_text(
+        f"╔═══════════════════════╗\n"
+        f"   ✅ LIBRO ENCONTRADO 🧐\n"
+        f"╚═══════════════════════╝\n\n"
+        f"📚 Se encontraron {len(resultados)} resultado(s)\n\n"
+        f"👇 Presiona para descargar:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
 
 async def boton(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
