@@ -35,22 +35,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def lista(update: Update, context: ContextTypes.DEFAULT_TYPE):
     archivos = os.listdir(CARPETA)
     if not archivos:
-        await update.message.reply_text(
-            "╔═══════════════════════╗\n"
-            "   📚 CATÁLOGO\n"
-            "╚═══════════════════════╝\n\n"
-            "😔 No hay libros disponibles\n"
-            "por el momento."
-        )
+        await update.message.reply_text("😔 No hay libros disponibles por el momento.")
         return
-    total = len(archivos)
-    lista_libros = "\n".join([f"📖 {a}" for a in archivos])
+    keyboard = [[InlineKeyboardButton(f"📖 {a}", callback_data=a)] for a in archivos]
     await update.message.reply_text(
-        f"╔═══════════════════════╗\n"
-        f"   📚 CATÁLOGO COMPLETO\n"
-        f"╚═══════════════════════╝\n\n"
-        f"📊 Total de libros: {total}\n\n"
-        f"{lista_libros}"
+        "📚 Selecciona un documento:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
 async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -84,7 +74,7 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "catálogo completo con /lista"
         )
         return
-    keyboard = [[InlineKeyboardButton(a, callback_data=a)] for a in resultados]
+    keyboard = [[InlineKeyboardButton(f"📖 {a}", callback_data=a)] for a in resultados]
     await update.message.reply_text("🔎 Resultados:", reply_markup=InlineKeyboardMarkup(keyboard))
 
 async def boton(update: Update, context: ContextTypes.DEFAULT_TYPE):
