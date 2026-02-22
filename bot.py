@@ -2,7 +2,7 @@ import os
 import threading
 import http.server
 import socketserver
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
@@ -22,6 +22,11 @@ def iniciar_servidor():
 threading.Thread(target=iniciar_servidor, daemon=True).start()
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await context.bot.set_my_commands([
+        BotCommand("start", "🏠 Inicio"),
+        BotCommand("lista", "📚 Ver catálogo completo"),
+        BotCommand("buscar", "🔎 Buscar un libro"),
+    ])
     keyboard = [
         [InlineKeyboardButton("🔎 Buscar documento", callback_data="cmd_buscar")],
     ]
