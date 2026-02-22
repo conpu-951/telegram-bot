@@ -23,7 +23,7 @@ threading.Thread(target=iniciar_servidor, daemon=True).start()
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
-        [InlineKeyboardButton("🔎 Buscar documento", switch_inline_query_current_chat="")],
+        [InlineKeyboardButton("🔎 Buscar documento", callback_data="cmd_buscar")],
     ]
     with open(IMAGEN, "rb") as img:
         await update.message.reply_photo(
@@ -58,6 +58,12 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def boton(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
+
+    if query.data == "cmd_buscar":
+        await query.message.reply_text(
+            "✏️ Coloca el nombre del libro.......\n\nPor ejemplo: /buscar Tú Eres tu Prioridad"
+        )
+        return
 
     ruta = os.path.join(CARPETA, query.data)
     if os.path.exists(ruta):
