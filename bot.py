@@ -1,4 +1,7 @@
 import os
+import threading
+import http.server
+import socketserver
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder,
@@ -9,6 +12,13 @@ from telegram.ext import (
 
 TOKEN = os.environ.get('TOKEN')
 CARPETA = "documentos"
+
+def iniciar_servidor():
+    handler = http.server.BaseHTTPRequestHandler
+    with socketserver.TCPServer(("", 10000), handler) as httpd:
+        httpd.serve_forever()
+
+threading.Thread(target=iniciar_servidor, daemon=True).start()
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
@@ -52,4 +62,11 @@ app.add_handler(CommandHandler("lista", lista))
 app.add_handler(CommandHandler("buscar", buscar))
 app.add_handler(CallbackQueryHandler(boton))
 print("Bot funcionando...")
-app.run_polling() 
+app.run_polling()
+```
+
+Pega esto en `bot.py`, guarda, luego en Git Bash:
+```
+git add .
+git commit -m "fix puerto render"
+git push 
