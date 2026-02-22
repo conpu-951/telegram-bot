@@ -8,7 +8,9 @@ from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
     CallbackQueryHandler,
+    MessageHandler,
     ContextTypes,
+    filters,
 )
 
 TOKEN = os.environ.get('TOKEN')
@@ -17,6 +19,7 @@ IMAGEN = "bienvenida.png"
 FAVORITOS_FILE = "favoritos.json"
 STATS_FILE = "estadisticas.json"
 PORTADAS = "portadas"
+USUARIOS_FILE = "usuarios.json"
 ADMIN_ID = 6262593562
 
 def cargar_favoritos():
@@ -44,6 +47,26 @@ def registrar_descarga(archivo):
     stats[archivo] = stats.get(archivo, 0) + 1
     guardar_stats(stats)
 
+def cargar_usuarios():
+    if os.path.exists(USUARIOS_FILE):
+        with open(USUARIOS_FILE, "r") as f:
+            return json.load(f)
+    return {}
+
+def guardar_usuarios(usuarios):
+    with open(USUARIOS_FILE, "w") as f:
+        json.dump(usuarios, f)
+
+def registrar_usuario(user):
+    usuarios = cargar_usuarios()
+    uid = str(user.id)
+    if uid not in usuarios:
+        usuarios[uid] = {
+            "nombre": user.full_name,
+            "username": user.username or "sin username"
+        }
+        guardar_usuarios(usuarios)
+
 def iniciar_servidor():
     class Handler(http.server.BaseHTTPRequestHandler):
         def do_GET(self):
@@ -58,6 +81,7 @@ def iniciar_servidor():
 threading.Thread(target=iniciar_servidor, daemon=True).start()
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    registrar_usuario(update.message.from_user)
     await context.bot.set_my_commands([
         BotCommand("start", "🏠 Inicio"),
         BotCommand("lista", "📚 Ver catálogo completo"),
@@ -76,6 +100,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 async def lista(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    registrar_usuario(update.message.from_user)
     archivos = os.listdir(CARPETA)
     total = len(archivos)
     if not archivos:
@@ -92,6 +117,7 @@ async def lista(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    registrar_usuario(update.message.from_user)
     if not context.args:
         await update.message.reply_text(
             "╔═══════════════════════╗\n"
@@ -133,6 +159,7 @@ async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def favoritos(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    registrar_usuario(update.message.from_user)
     user_id = str(update.message.from_user.id)
     favs = cargar_favoritos()
     user_favs = favs.get(user_id, [])
@@ -163,7 +190,9 @@ async def favoritos(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def estadisticas(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    registrar_usuario(update.message.from_user)
     stats = cargar_stats()
+    usuarios = cargar_usuarios()
     if not stats:
         await update.message.reply_text(
             "╔═══════════════════════╗\n"
@@ -179,7 +208,8 @@ async def estadisticas(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "╔═══════════════════════╗\n"
         "   📊 ESTADISTICAS\n"
         "╚═══════════════════════╝\n\n"
-        f"📥 Total descargas: {total_descargas}\n\n"
+        f"📥 Total descargas: {total_descargas}\n"
+        f"👥 Total usuarios: {len(usuarios)}\n\n"
         "🏆 Más descargados:\n\n"
     )
     medallas = ["🥇", "🥈", "🥉"]
@@ -192,18 +222,22 @@ async def admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.from_user.id != ADMIN_ID:
         await update.message.reply_text("⛔ No tienes permiso para usar este comando.")
         return
+    usuarios = cargar_usuarios()
     await update.message.reply_text(
         "╔═══════════════════════╗\n"
         "   👤 PANEL DE ADMIN\n"
         "╚═══════════════════════╝\n\n"
+        f"👥 Usuarios registrados: {len(usuarios)}\n\n"
         "Comandos disponibles:\n\n"
-        "📤 Enviar PDF al bot para agregarlo\n\n"
+        "📤 Enviar PDF para agregar libro\n\n"
         "🗑️ /eliminar nombre.pdf\n"
         "Para eliminar un libro\n\n"
+        "📢 /broadcast mensaje\n"
+        "Enviar mensaje a todos\n\n"
+        "📋 /usuarios\n"
+        "Ver lista de usuarios\n\n"
         "📊 /estadisticas\n"
-        "Ver descargas\n\n"
-        "📚 /lista\n"
-        "Ver todos los libros"
+        "Ver descargas"
     )
 
 async def eliminar(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -225,6 +259,55 @@ async def eliminar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text(f"😔 No se encontró {nombre}.")
 
+async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message.from_user.id != ADMIN_ID:
+        await update.message.reply_text("⛔ No tienes permiso para usar este comando.")
+        return
+    if not context.args:
+        await update.message.reply_text(
+            "✏️ Uso: /broadcast mensaje\n\n"
+            "Ejemplo:\n"
+            "/broadcast Nuevo libro disponible!"
+        )
+        return
+    mensaje = " ".join(context.args)
+    usuarios = cargar_usuarios()
+    enviados = 0
+    fallidos = 0
+    for uid in usuarios:
+        try:
+            await context.bot.send_message(
+                chat_id=int(uid),
+                text=f"📢 Mensaje del administrador:\n\n{mensaje}"
+            )
+            enviados += 1
+        except:
+            fallidos += 1
+    await update.message.reply_text(
+        f"✅ Mensaje enviado\n\n"
+        f"📤 Enviados: {enviados}\n"
+        f"❌ Fallidos: {fallidos}"
+    )
+
+async def ver_usuarios(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message.from_user.id != ADMIN_ID:
+        await update.message.reply_text("⛔ No tienes permiso para usar este comando.")
+        return
+    usuarios = cargar_usuarios()
+    if not usuarios:
+        await update.message.reply_text("😔 No hay usuarios registrados aún.")
+        return
+    texto = (
+        "╔═══════════════════════╗\n"
+        "   📋 LISTA DE USUARIOS\n"
+        "╚═══════════════════════╝\n\n"
+        f"👥 Total: {len(usuarios)}\n\n"
+    )
+    for uid, datos in list(usuarios.items())[:20]:
+        texto += f"👤 {datos['nombre']}\n"
+        texto += f"   @{datos['username']}\n\n"
+    await update.message.reply_text(texto)
+
 async def recibir_documento(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.from_user.id != ADMIN_ID:
         return
@@ -236,6 +319,18 @@ async def recibir_documento(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ruta = os.path.join(CARPETA, doc.file_name)
     await archivo.download_to_drive(ruta)
     await update.message.reply_text(f"✅ {doc.file_name} agregado correctamente.")
+    usuarios = cargar_usuarios()
+    nombre_sin_ext = os.path.splitext(doc.file_name)[0]
+    enviados = 0
+    for uid in usuarios:
+        try:
+            await context.bot.send_message(
+                chat_id=int(uid),
+                text=f"🔔 Nuevo libro disponible!\n\n📖 {nombre_sin_ext}\n\nEscribe /lista para verlo."
+            )
+            enviados += 1
+        except:
+            pass
 
 async def boton(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -306,8 +401,6 @@ async def boton(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await query.message.reply_text("Archivo no encontrado.")
 
-from telegram.ext import MessageHandler, filters
-
 app = ApplicationBuilder().token(TOKEN).build()
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("lista", lista))
@@ -316,6 +409,8 @@ app.add_handler(CommandHandler("favoritos", favoritos))
 app.add_handler(CommandHandler("estadisticas", estadisticas))
 app.add_handler(CommandHandler("admin", admin))
 app.add_handler(CommandHandler("eliminar", eliminar))
+app.add_handler(CommandHandler("broadcast", broadcast))
+app.add_handler(CommandHandler("usuarios", ver_usuarios))
 app.add_handler(MessageHandler(filters.Document.PDF, recibir_documento))
 app.add_handler(CallbackQueryHandler(boton))
 print("Bot funcionando...")
