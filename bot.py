@@ -43,7 +43,16 @@ async def lista(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
         await update.message.reply_text(
-            "✏️ Coloca el nombre del libro.......\n\nPor ejemplo: /buscar Tú Eres tu Prioridad"
+            "╔═══════════════════════╗\n"
+            "   🔎 BUSCADOR DE LIBROS\n"
+            "╚═══════════════════════╝\n\n"
+            "📚 ¿Qué libro estás buscando?\n\n"
+            "✏️ Escribe en el chat:\n"
+            "/buscar + el nombre del libro\n\n"
+            "📖 Ejemplo:\n"
+            "/buscar Tú Eres tu Prioridad\n\n"
+            "💡 Tip: Puedes buscar por\n"
+            "una palabra del título"
         )
         return
     palabra = " ".join(context.args).lower()
@@ -61,7 +70,16 @@ async def boton(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if query.data == "cmd_buscar":
         await query.message.reply_text(
-            "✏️ Coloca el nombre del libro.......\n\nPor ejemplo: /buscar Tú Eres tu Prioridad"
+            "╔═══════════════════════╗\n"
+            "   🔎 BUSCADOR DE LIBROS\n"
+            "╚═══════════════════════╝\n\n"
+            "📚 ¿Qué libro estás buscando?\n\n"
+            "✏️ Escribe en el chat:\n"
+            "/buscar + el nombre del libro\n\n"
+            "📖 Ejemplo:\n"
+            "/buscar Tú Eres tu Prioridad\n\n"
+            "💡 Tip: Puedes buscar por\n"
+            "una palabra del título"
         )
         return
 
