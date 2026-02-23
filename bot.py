@@ -125,7 +125,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         BotCommand("aleatorio", "🔀 Libro al azar"),
         BotCommand("historial", "🕐 Mis últimas descargas"),
         BotCommand("favoritos", "⭐ Mis favoritos"),
-        BotCommand("estadisticas", "📊 Estadísticas generales"),
         BotCommand("ayuda", "ℹ️ Cómo usar el bot"),
     ])
     keyboard = [
@@ -177,11 +176,6 @@ async def ayuda(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Cuando buscas un libro puedes:\n"
         "• Ver reseñas de otros usuarios\n"
         "• Dejar tu propia reseña (1-5⭐)\n\n"
-        "━━━━━━━━━━━━━━━━━━━━━━━\n"
-        "📊 OTRAS FUNCIONES\n"
-        "━━━━━━━━━━━━━━━━━━━━━━━\n"
-        "/estadisticas → Ver stats globales\n"
-        "/ayuda → Ver esta guía\n\n"
         "💡 Tip: Puedes guardar libros\n"
         "en favoritos para acceder\n"
         "rápidamente después!"
@@ -774,11 +768,6 @@ async def boton(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "Cuando buscas un libro puedes:\n"
             "• Ver reseñas de otros usuarios\n"
             "• Dejar tu propia reseña (1-5⭐)\n\n"
-            "━━━━━━━━━━━━━━━━━━━━━━━\n"
-            "📊 OTRAS FUNCIONES\n"
-            "━━━━━━━━━━━━━━━━━━━━━━━\n"
-            "/estadisticas → Ver stats globales\n"
-            "/ayuda → Ver esta guía\n\n"
             "💡 Tip: Puedes guardar libros\n"
             "en favoritos para acceder\n"
             "rápidamente después!"
