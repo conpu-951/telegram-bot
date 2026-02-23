@@ -125,14 +125,16 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         BotCommand("aleatorio", "🔀 Libro al azar"),
         BotCommand("historial", "🕐 Mis últimas descargas"),
         BotCommand("favoritos", "⭐ Mis favoritos"),
-        BotCommand("estadisticas", "📊 Estadísticas"),
+        BotCommand("estadisticas", "📊 Estadísticas generales"),
+        BotCommand("ayuda", "ℹ️ Cómo usar el bot"),
     ])
     keyboard = [
         [InlineKeyboardButton("📚 Catálogo", callback_data="cmd_catalogo"),
          InlineKeyboardButton("🏆 Top 10", callback_data="cmd_top")],
         [InlineKeyboardButton("📂 Categorías", callback_data="cmd_categorias"),
          InlineKeyboardButton("🔎 Buscar", callback_data="cmd_buscar")],
-        [InlineKeyboardButton("🔀 Aleatorio", callback_data="cmd_aleatorio")],
+        [InlineKeyboardButton("🔀 Aleatorio", callback_data="cmd_aleatorio"),
+         InlineKeyboardButton("ℹ️ Ayuda", callback_data="cmd_ayuda")],
     ]
     with open(IMAGEN, "rb") as img:
         await update.message.reply_photo(
@@ -140,6 +142,51 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             caption="👋 Bienvenido\n\n💻 Conéctate al conocimiento.",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
+
+async def ayuda(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if esta_bloqueado(update.message.from_user.id):
+        return
+    registrar_usuario(update.message.from_user)
+    texto = (
+        "╔═══════════════════════╗\n"
+        "   ℹ️ GUÍA DE USO\n"
+        "╚═══════════════════════╝\n\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "📚 BUSCAR LIBROS\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "/catalogo → Ver todos los libros\n"
+        "/top → Top 10 más descargados\n"
+        "/categorias → Navegar por temas\n"
+        "/buscar palabra → Buscar libro\n"
+        "/aleatorio → Libro sorpresa\n\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "⭐ TUS LIBROS\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "/favoritos → Tus libros guardados\n"
+        "/historial → Últimas descargas\n\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "📤 SUBIR LIBROS\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "Envía cualquier PDF al bot\n"
+        "y será revisado por el admin.\n"
+        "Si es aprobado, aparecerá en\n"
+        "el catálogo para todos.\n\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "✍️ RESEÑAS\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "Cuando buscas un libro puedes:\n"
+        "• Ver reseñas de otros usuarios\n"
+        "• Dejar tu propia reseña (1-5⭐)\n\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "📊 OTRAS FUNCIONES\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "/estadisticas → Ver stats globales\n"
+        "/ayuda → Ver esta guía\n\n"
+        "💡 Tip: Puedes guardar libros\n"
+        "en favoritos para acceder\n"
+        "rápidamente después!"
+    )
+    await update.message.reply_text(texto)
 
 async def catalogo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if esta_bloqueado(update.message.from_user.id):
@@ -696,6 +743,49 @@ async def boton(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.message.reply_text(f"🔀 Libro aleatorio:\n\n📖 {nombre_sin_ext}", reply_markup=InlineKeyboardMarkup(keyboard))
         return
 
+    if query.data == "cmd_ayuda":
+        texto = (
+            "╔═══════════════════════╗\n"
+            "   ℹ️ GUÍA DE USO\n"
+            "╚═══════════════════════╝\n\n"
+            "━━━━━━━━━━━━━━━━━━━━━━━\n"
+            "📚 BUSCAR LIBROS\n"
+            "━━━━━━━━━━━━━━━━━━━━━━━\n"
+            "/catalogo → Ver todos los libros\n"
+            "/top → Top 10 más descargados\n"
+            "/categorias → Navegar por temas\n"
+            "/buscar palabra → Buscar libro\n"
+            "/aleatorio → Libro sorpresa\n\n"
+            "━━━━━━━━━━━━━━━━━━━━━━━\n"
+            "⭐ TUS LIBROS\n"
+            "━━━━━━━━━━━━━━━━━━━━━━━\n"
+            "/favoritos → Tus libros guardados\n"
+            "/historial → Últimas descargas\n\n"
+            "━━━━━━━━━━━━━━━━━━━━━━━\n"
+            "📤 SUBIR LIBROS\n"
+            "━━━━━━━━━━━━━━━━━━━━━━━\n"
+            "Envía cualquier PDF al bot\n"
+            "y será revisado por el admin.\n"
+            "Si es aprobado, aparecerá en\n"
+            "el catálogo para todos.\n\n"
+            "━━━━━━━━━━━━━━━━━━━━━━━\n"
+            "✍️ RESEÑAS\n"
+            "━━━━━━━━━━━━━━━━━━━━━━━\n"
+            "Cuando buscas un libro puedes:\n"
+            "• Ver reseñas de otros usuarios\n"
+            "• Dejar tu propia reseña (1-5⭐)\n\n"
+            "━━━━━━━━━━━━━━━━━━━━━━━\n"
+            "📊 OTRAS FUNCIONES\n"
+            "━━━━━━━━━━━━━━━━━━━━━━━\n"
+            "/estadisticas → Ver stats globales\n"
+            "/ayuda → Ver esta guía\n\n"
+            "💡 Tip: Puedes guardar libros\n"
+            "en favoritos para acceder\n"
+            "rápidamente después!"
+        )
+        await query.message.reply_text(texto)
+        return
+
     if query.data.startswith("cat_"):
         categoria = query.data.replace("cat_", "")
         ruta_cat = os.path.join(CARPETA, categoria)
@@ -839,6 +929,7 @@ app.add_handler(CommandHandler("aleatorio", aleatorio))
 app.add_handler(CommandHandler("historial", historial))
 app.add_handler(CommandHandler("favoritos", favoritos))
 app.add_handler(CommandHandler("estadisticas", estadisticas))
+app.add_handler(CommandHandler("ayuda", ayuda))
 app.add_handler(CommandHandler("admin", admin))
 app.add_handler(CommandHandler("eliminar", eliminar))
 app.add_handler(CommandHandler("renombrar", renombrar))
